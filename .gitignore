@@ -1,0 +1,13 @@
+**/bin/
+**/obj/
+.artifacts/
+.vs/
+TestResults/
+*.user
+*.suo
+.idea/
+.env
+.env.*
+environment-report.txt
+*.snapshot.json
+*.recovery.json
