@@ -11,8 +11,15 @@ if ($env:GITHUB_ACTIONS -ne 'true' -or $env:GITHUB_REF -ne 'refs/heads/main' -or
 
 function Invoke-GitHub([string[]]$Arguments) {
     $result = @(& gh @Arguments)
-    if ($LASTEXITCODE -ne 0) { throw 'GitHub release command failed; any draft remains unpublished.' }
+    if ($LASTEXITCODE -ne 0) { throw 'GitHub release command failed; inspect the release state before retrying.' }
     return $result
+}
+
+function Get-VersionRelease([string]$Repository, [string]$Tag) {
+    # The tag endpoint does not return unpublished drafts.
+    $filter = '.[] | select(.tag_name == "' + $Tag + '")'
+    $json = (Invoke-GitHub @('api', "repos/$Repository/releases?per_page=100", '--paginate', '--jq', $filter)) -join "`n"
+    if (-not [string]::IsNullOrWhiteSpace($json)) { return ($json | ConvertFrom-Json) }
 }
 
 Push-Location -LiteralPath $projectRoot
@@ -26,20 +33,21 @@ try {
     }
     $tag = 'v' + $version
     $repository = $env:GITHUB_REPOSITORY
-    $filter = '.[] | select(.tag_name == "' + $tag + '") | {draft, html_url}'
-    $existing = (Invoke-GitHub @('api', "repos/$repository/releases?per_page=100", '--paginate', '--jq', $filter)) -join "`n"
-    if (-not [string]::IsNullOrWhiteSpace($existing)) {
-        $release = $existing | ConvertFrom-Json
-        if ($release.draft) { throw 'A draft already exists for this version; inspect it before retrying publication.' }
+    $archiveName = 'myka-' + $version + '-win-x64.zip'
+    $release = Get-VersionRelease $repository $tag
+    if ($null -ne $release -and -not $release.draft) {
         Write-Output ('Release already published: ' + $release.html_url)
         return
+    }
+    if ($null -ne $release -and ($release.author.login -cne 'github-actions[bot]' -or
+        @($release.assets | Where-Object { $_.name -cnotin @($archiveName, ($archiveName + '.sha256')) }).Count -ne 0)) {
+        throw 'The existing draft has a different author or unexpected assets; inspect it before retrying.'
     }
     $tagRefs = @(& git ls-remote --tags origin "refs/tags/$tag" "refs/tags/$tag^{}")
     if ($LASTEXITCODE -ne 0) { throw 'Could not check existing release tags.' }
     if ($tagRefs.Count -ne 0) { throw 'The version tag already exists without a published release; review it before proceeding.' }
 
     $artifactDirectory = Join-Path $projectRoot '.artifacts/release'
-    $archiveName = 'myka-' + $version + '-win-x64.zip'
     $archive = Join-Path $artifactDirectory $archiveName
     $checksum = $archive + '.sha256'
     foreach ($path in @($archive, $checksum)) {
@@ -59,10 +67,19 @@ try {
     $notesPath = Join-Path $artifactDirectory 'release-notes.md'
     [IO.File]::WriteAllText($notesPath, $notes, (New-Object Text.UTF8Encoding($false)))
 
-    Invoke-GitHub @('release', 'create', $tag, $archive, $checksum, '--repo', $repository,
-        '--target', $commit, '--title', ("MyKa's Roblox Spoofer " + $version), '--notes-file', $notesPath, '--draft') | Out-Null
-    $draft = ((Invoke-GitHub @('api', "repos/$repository/releases/tags/$tag")) -join "`n") | ConvertFrom-Json
-    if (-not $draft.draft -or $draft.target_commitish -cne $commit -or $draft.assets.Count -ne 2) {
+    if ($null -ne $release) {
+        Invoke-GitHub @('release', 'edit', $tag, '--repo', $repository, '--target', $commit,
+            '--title', ("MyKa's Roblox Spoofer " + $version), '--notes-file', $notesPath) | Out-Null
+        Invoke-GitHub @('release', 'upload', $tag, $archive, $checksum, '--repo', $repository, '--clobber') | Out-Null
+    }
+    else {
+        Invoke-GitHub @('release', 'create', $tag, $archive, $checksum, '--repo', $repository,
+            '--target', $commit, '--title', ("MyKa's Roblox Spoofer " + $version), '--notes-file', $notesPath, '--draft') | Out-Null
+        $release = Get-VersionRelease $repository $tag
+    }
+    if ($null -eq $release -or $release.id -le 0) { throw 'The release draft could not be resolved.' }
+    $draft = ((Invoke-GitHub @('api', "repos/$repository/releases/$($release.id)")) -join "`n") | ConvertFrom-Json
+    if (-not $draft.draft -or $draft.tag_name -cne $tag -or $draft.target_commitish -cne $commit -or $draft.assets.Count -ne 2) {
         throw 'The release draft does not match the tested commit and expected assets.'
     }
     foreach ($path in @($archive, $checksum)) {

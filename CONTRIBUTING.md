@@ -22,7 +22,7 @@ Each build starts with fresh publish output. If `.artifacts/publish` exists, the
 
 Do not commit `bin`, `obj`, `.artifacts`, account profiles, snapshots or recovery files. No `.env` file or service credentials are required.
 
-After a successful build on `main`, GitHub Actions publishes the project version when it has no existing release or tag. To prepare another release, update the application project's version and `TerminalUi.Version`, then add the matching changelog entry. The release job checks the ZIP checksum, creates a draft at the tested commit, verifies both uploaded assets and then publishes. Existing published versions stay unchanged. Pull requests cannot run the release job; only that job receives the temporary repository write token.
+After a successful build on `main`, GitHub Actions publishes the project version when it has no existing published release or tag. To prepare another release, update the application project's version and `TerminalUi.Version`, then add the matching changelog entry. The release job checks the ZIP checksum, creates a draft at the tested commit, verifies both uploaded assets and then publishes. A retry can refresh an unpublished draft created by GitHub Actions if it contains only the expected asset names; other drafts require review. Existing published versions stay unchanged. Pull requests cannot run the release job; only that job receives the temporary repository write token.
 
 ## Make a change
 
