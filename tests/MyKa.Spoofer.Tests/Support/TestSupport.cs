@@ -44,6 +44,8 @@ internal static class Capture
             ColorSystem = ColorSystemSupport.NoColors,
             Interactive = InteractionSupport.No,
             Out = new AnsiConsoleOutput(writer),
+            // CI profile enrichers can override AnsiSupport.No with terminal styling.
+            Enrichment = new ProfileEnrichment { UseDefaultEnrichers = false },
         });
         console.Profile.Width = width;
         console.Write(renderable);
