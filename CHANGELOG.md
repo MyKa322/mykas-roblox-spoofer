@@ -16,6 +16,7 @@
 - Add a visual README with screenshots and GIFs generated from real views using fictional data.
 - Add a detailed user guide, contributor notes, security reporting guidance and repository instructions for Codex.
 - Add a Windows build workflow and reproducible local release commands.
+- Publish verified Windows ZIPs and SHA-256 files through GitHub Releases after successful main-branch builds.
 
 ### Validation
 

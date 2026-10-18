@@ -22,6 +22,8 @@ Each build starts with fresh publish output. If `.artifacts/publish` exists, the
 
 Do not commit `bin`, `obj`, `.artifacts`, account profiles, snapshots or recovery files. No `.env` file or service credentials are required.
 
+After a successful build on `main`, GitHub Actions publishes the project version when it has no existing release or tag. To prepare another release, update the application project's version and `TerminalUi.Version`, then add the matching changelog entry. The release job checks the ZIP checksum, creates a draft at the tested commit, verifies both uploaded assets and then publishes. Existing published versions stay unchanged. Pull requests cannot run the release job; only that job receives the temporary repository write token.
+
 ## Make a change
 
 Open an issue for a substantial feature or change to storage, recovery or browser permissions. For a small fix, a pull request with a clear reproduction is enough. Create a branch, keep the change focused and describe the observable behavior before and after it.

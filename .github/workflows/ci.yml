@@ -35,3 +35,32 @@ jobs:
             .artifacts/publish/
             .artifacts/*.zip
             .artifacts/*.sha256
+
+  release:
+    needs: build
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: windows-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    concurrency:
+      group: github-release
+      cancel-in-progress: false
+    steps:
+      - name: Check out tested source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Download verified Windows package
+        uses: actions/download-artifact@v4
+        with:
+          name: myka-win-x64
+          path: .artifacts/release
+
+      - name: Publish versioned release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ./scripts/PublishRelease.ps1

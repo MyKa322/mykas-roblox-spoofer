@@ -9,7 +9,7 @@ A Windows terminal for Roblox accounts, diagnostics and reviewed system identity
 ![.NET 10](https://img.shields.io/badge/.NET-10-8c77e8?style=flat-square)
 [![MIT license](https://img.shields.io/badge/license-MIT-a8b1bf?style=flat-square)](LICENSE)
 
-[Get started](#get-started) · [User guide](docs/user-guide.md) · [Architecture](docs/architecture.md) · [Contributing](CONTRIBUTING.md)
+[Download for Windows](https://github.com/MyKa322/mykas-roblox-spoofer/releases/latest) · [Get started](#get-started) · [User guide](docs/user-guide.md) · [Architecture](docs/architecture.md) · [Contributing](CONTRIBUTING.md)
 
 </div>
 
